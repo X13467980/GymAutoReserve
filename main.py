@@ -35,7 +35,7 @@ def make_reservation(date_str: str, time_slot_text: str):
 
         year, month, day = map(int, date_str.split('-'))
 
-        # ✅ 正しい<a>タグ（id指定）をクリックして日付選択
+        # ✅ 日付をクリック（aタグのidで指定）
         xpath = f'//a[@id="{year}-{month}-{day}_td_cls"]'
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
@@ -43,10 +43,19 @@ def make_reservation(date_str: str, time_slot_text: str):
         print(f"✅ 日付 {date_str} を選択しました")
         time.sleep(1)
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, f'//div[contains(text(), "{time_slot_text}")]'))
-        ).click()
-        print(f"✅ 時間帯「{time_slot_text}」を選択しました")
+        # ✅ 時間帯をクリック（aタグのclassとtextに基づいて指定）
+        try:
+            print("⌛ 時間帯を検索中…")
+            time_xpath = f'//a[contains(@class, "res-label") and contains(text(), "{time_slot_text}")]'
+            time_slot = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, time_xpath))
+            )
+            time_slot.click()
+            print(f"✅ 時間帯「{time_slot_text}」を選択しました")
+        except Exception as e:
+            driver.save_screenshot("no_time_slot.png")
+            print(f"❌ 時間帯「{time_slot_text}」が見つかりませんでした: {e}")
+            return
 
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), "次へ")]'))
