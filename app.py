@@ -1,92 +1,68 @@
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage,
-    QuickReply, QuickReplyButton, MessageAction
+from linebot.v3 import WebhookHandler
+from linebot.v3.messaging import (
+    MessagingApi, ReplyMessageRequest, TextMessage,
+    Configuration, ApiClient
 )
-from main import make_reservation
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import os
 from dotenv import load_dotenv
 
-# .env 読み込み
 load_dotenv()
 
 app = Flask(__name__)
 
-print("SECRET:", os.getenv("LINE_CHANNEL_SECRET"))
+# .env 読み込みチェック
+channel_secret = os.getenv("LINE_CHANNEL_SECRET")
+access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 
-line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+print("✅ CHANNEL SECRET:", channel_secret)
+print("✅ ACCESS TOKEN:", access_token)
 
-# 状態保存（本番はRedisやDBなど推奨）
-user_state = {}
+if not channel_secret or not access_token:
+    print("❌ .env の読み込み失敗！")
+    exit(1)
 
-@app.route("/callback", methods=['POST'])
+# LINE Messaging API の設定
+configuration = Configuration(access_token=access_token)
+api_client = ApiClient(configuration)
+messaging_api = MessagingApi(api_client)
+handler = WebhookHandler(channel_secret)
+
+@app.route("/", methods=["GET"])
+def root():
+    return "✅ Flask is running!"
+
+@app.route("/callback", methods=["POST"])
 def callback():
-    signature = request.headers['X-Line-Signature']
+    print("📩 Flaskの /callback に POST きたよ！！")
+
+    signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
 
-    try:
-        handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
+    print("==== Webhook受信 ====")
+    print("Signature:", signature)
+    print("Body:", body)
+    print("=====================")
 
-    return 'OK'
+    return "OK"
 
-
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
+    print("💬 LINEからメッセージ受信")
     user_id = event.source.user_id
-    text = event.message.text.strip()
+    reply_token = event.reply_token
+    text = event.message.text
 
-    # STEP 1: 日付を選んでもらう
-    if text.lower() in ["予約", "start"]:
-        msg = TextSendMessage(
-            text="予約したい日付を選んでください",
-            quick_reply=QuickReply(items=[
-                QuickReplyButton(action=MessageAction(label="4月15日", text="2025-04-15")),
-                QuickReplyButton(action=MessageAction(label="4月16日", text="2025-04-16")),
-                QuickReplyButton(action=MessageAction(label="4月17日", text="2025-04-17")),
-            ])
+    print(f"[{user_id}] {text}")
+
+    messaging_api.reply_message(
+        ReplyMessageRequest(
+            reply_token=reply_token,
+            messages=[TextMessage(text="予約ですね！日付を選んでください")]
         )
-        user_state[user_id] = {"step": "waiting_time"}
-        line_bot_api.reply_message(event.reply_token, msg)
-        return
-
-    # STEP 2: 時間を選んでもらう
-    if user_id in user_state and user_state[user_id].get("step") == "waiting_time" and text.startswith("2025-"):
-        user_state[user_id]["date"] = text
-        user_state[user_id]["step"] = "reserve"
-
-        msg = TextSendMessage(
-            text=f"{text} の予約時間帯を選んでください",
-            quick_reply=QuickReply(items=[
-                QuickReplyButton(action=MessageAction(label="14:30～15:45", text="14:30～15:45")),
-                QuickReplyButton(action=MessageAction(label="16:00～17:15", text="16:00～17:15")),
-            ])
-        )
-        line_bot_api.reply_message(event.reply_token, msg)
-        return
-
-    # STEP 3: 時間を受け取って予約実行
-    if user_id in user_state and user_state[user_id].get("step") == "reserve":
-        date = user_state[user_id].get("date")
-        time_slot = text
-
-        try:
-            make_reservation(date, time_slot)
-            reply = TextSendMessage(text=f"✅ 予約完了しました：{date} {time_slot}")
-        except Exception as e:
-            reply = TextSendMessage(text=f"❌ 予約に失敗しました：{str(e)}")
-
-        user_state.pop(user_id)
-        line_bot_api.reply_message(event.reply_token, reply)
-        return
-
-    # それ以外のメッセージ
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text="「予約」と送って始めてください！"))
-
+    )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
