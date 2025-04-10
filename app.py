@@ -1,12 +1,14 @@
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.messaging import (
-    MessagingApi, ReplyMessageRequest, TextMessage,  # ← これは送信用
-    Configuration, ApiClient
+    MessagingApi, ReplyMessageRequest, TextMessage,
+    Configuration, ApiClient,
+    QuickReply, QuickReplyItem, MessageAction
 )
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.webhooks import MessageEvent, TextMessageContent  # ← 受信用はこっち！
+from linebot.v3.webhooks import MessageEvent, TextMessageContent
 
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 
@@ -28,6 +30,22 @@ configuration = Configuration(access_token=access_token)
 api_client = ApiClient(configuration)
 messaging_api = MessagingApi(api_client)
 handler = WebhookHandler(channel_secret)
+
+
+def generate_date_quick_reply():
+    today = datetime.now()
+    quick_items = []
+
+    for i in range(13):  # 今日から12日後まで
+        date = today + timedelta(days=i)
+        label = f"{date.month}月{date.day}日"
+        text = date.strftime("%Y-%m-%d")
+        quick_items.append(
+            QuickReplyItem(action=MessageAction(label=label, text=text))
+        )
+
+    return QuickReply(items=quick_items)
+
 
 @app.route("/", methods=["GET"])
 def root():
@@ -53,22 +71,35 @@ def callback():
 
     return "OK"
 
-# ✅ ここを修正：TextMessage → TextMessageContent（受信用）
+
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     print("💬 LINEからメッセージ受信")
     user_id = event.source.user_id
     reply_token = event.reply_token
-    text = event.message.text
+    text = event.message.text.strip()
 
     print(f"[{user_id}] {text}")
 
-    messaging_api.reply_message(
-        ReplyMessageRequest(
-            reply_token=reply_token,
-            messages=[TextMessage(text="予約ですね！日付を選んでください")]
+    if text == "予約":
+        messaging_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=reply_token,
+                messages=[
+                    TextMessage(
+                        text="予約したい日付を選んでください",
+                        quick_reply=generate_date_quick_reply()
+                    )
+                ]
+            )
         )
-    )
+    else:
+        messaging_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=reply_token,
+                messages=[TextMessage(text="「予約」と送って始めてください！")]
+            )
+        )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
