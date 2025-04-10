@@ -18,7 +18,7 @@ USER_INFO = {
 def make_reservation(date_str: str, time_slot_text: str):
     service = Service(CHROMEDRIVER_PATH)
     options = Options()
-    # options.add_argument("--headless")  # 表示確認したいときはコメントアウトのままでOK
+    # options.add_argument("--headless")
 
     driver = webdriver.Chrome(service=service, options=options)
 
@@ -34,8 +34,6 @@ def make_reservation(date_str: str, time_slot_text: str):
         time.sleep(2)
 
         year, month, day = map(int, date_str.split('-'))
-
-        # ✅ 日付をクリック（aタグのidで指定）
         xpath = f'//a[@id="{year}-{month}-{day}_td_cls"]'
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
@@ -43,7 +41,6 @@ def make_reservation(date_str: str, time_slot_text: str):
         print(f"✅ 日付 {date_str} を選択しました")
         time.sleep(1)
 
-        # ✅ 時間帯をクリック（aタグのclassとtextに基づいて指定）
         try:
             print("⌛ 時間帯を検索中…")
             time_xpath = f'//a[contains(@class, "res-label") and contains(text(), "{time_slot_text}")]'
@@ -57,7 +54,6 @@ def make_reservation(date_str: str, time_slot_text: str):
             print(f"❌ 時間帯「{time_slot_text}」が見つかりませんでした: {e}")
             return
 
-        # ✅ 「次へ」ボタンをクリック（inputタグ対応）
         try:
             print("⌛ 『次へ』ボタンを待機中…")
             WebDriverWait(driver, 10).until(
@@ -69,15 +65,21 @@ def make_reservation(date_str: str, time_slot_text: str):
             print(f"❌ 『次へ』ボタンのクリックに失敗しました: {e}")
             return
 
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "お名前")))
-        driver.find_element(By.NAME, "お名前").send_keys(USER_INFO["name"])
-        driver.find_element(By.NAME, "メールアドレス").send_keys(USER_INFO["email"])
-        driver.find_element(By.NAME, "メールアドレス（確認）").send_keys(USER_INFO["email"])
-        driver.find_element(By.NAME, "利用許可証番号").send_keys(USER_INFO["permit"])
-        driver.find_element(By.NAME, "学部").send_keys(USER_INFO["faculty"])
-        print("✅ 入力フォーム完了")
+        try:
+            print("⌛ 入力フォームの読み込みを待機中…")
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "name")))
+            driver.find_element(By.NAME, "name").send_keys(USER_INFO["name"])
+            driver.find_element(By.NAME, "email").send_keys(USER_INFO["email"])
+            driver.find_element(By.NAME, "email_conf").send_keys(USER_INFO["email"])
+            driver.find_element(By.NAME, "no").send_keys(USER_INFO["permit"])
+            driver.find_element(By.NAME, "other").send_keys(USER_INFO["faculty"])
+            driver.find_element(By.NAME, "other2").send_keys("特になし")
+            print("✅ 入力フォーム完了")
+        except Exception as e:
+            driver.save_screenshot("form_input_error.png")
+            print(f"❌ 入力フォームの読み込みに失敗しました: {e}")
+            return
 
-        # ✅ フォームの「次へ」（確認画面に進む）も同じくinputで対応
         try:
             WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, '//input[@type="button" and @value="次へ"]'))
