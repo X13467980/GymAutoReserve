@@ -57,10 +57,17 @@ def make_reservation(date_str: str, time_slot_text: str):
             print(f"❌ 時間帯「{time_slot_text}」が見つかりませんでした: {e}")
             return
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), "次へ")]'))
-        ).click()
-        print("✅ 次へをクリック")
+        # ✅ 「次へ」ボタンをクリック（inputタグ対応）
+        try:
+            print("⌛ 『次へ』ボタンを待機中…")
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, '//input[@type="button" and @value="次へ"]'))
+            ).click()
+            print("✅ 次へをクリック")
+        except Exception as e:
+            driver.save_screenshot("next_button_error.png")
+            print(f"❌ 『次へ』ボタンのクリックに失敗しました: {e}")
+            return
 
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "お名前")))
         driver.find_element(By.NAME, "お名前").send_keys(USER_INFO["name"])
@@ -70,8 +77,16 @@ def make_reservation(date_str: str, time_slot_text: str):
         driver.find_element(By.NAME, "学部").send_keys(USER_INFO["faculty"])
         print("✅ 入力フォーム完了")
 
-        driver.find_element(By.XPATH, '//button[contains(text(), "次へ")]').click()
-        print("✅ 最終確認へ進みました")
+        # ✅ フォームの「次へ」（確認画面に進む）も同じくinputで対応
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, '//input[@type="button" and @value="次へ"]'))
+            ).click()
+            print("✅ 最終確認へ進みました")
+        except Exception as e:
+            driver.save_screenshot("form_next_button_error.png")
+            print(f"❌ 入力後の『次へ』ボタンのクリックに失敗しました: {e}")
+            return
 
         time.sleep(5)
 
