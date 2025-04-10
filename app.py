@@ -1,11 +1,12 @@
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.messaging import (
-    MessagingApi, ReplyMessageRequest, TextMessage,
+    MessagingApi, ReplyMessageRequest, TextMessage,  # ← これは送信用
     Configuration, ApiClient
 )
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from linebot.v3.webhooks import MessageEvent, TextMessageContent  # ← 受信用はこっち！
+
 import os
 from dotenv import load_dotenv
 
@@ -13,7 +14,6 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# .env 読み込みチェック
 channel_secret = os.getenv("LINE_CHANNEL_SECRET")
 access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 
@@ -24,7 +24,6 @@ if not channel_secret or not access_token:
     print("❌ .env の読み込み失敗！")
     exit(1)
 
-# LINE Messaging API の設定
 configuration = Configuration(access_token=access_token)
 api_client = ApiClient(configuration)
 messaging_api = MessagingApi(api_client)
@@ -46,8 +45,15 @@ def callback():
     print("Body:", body)
     print("=====================")
 
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        print("❌ 署名検証エラー！")
+        abort(403)
+
     return "OK"
 
+# ✅ ここを修正：TextMessage → TextMessageContent（受信用）
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     print("💬 LINEからメッセージ受信")
