@@ -19,13 +19,6 @@ USER_INFO = {
 
 CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
-USER_INFO = {
-    "name": "矢野陽大",
-    "email": "is0747fr@ed.ritsumei.ac.jp",
-    "permit": "28235",
-    "faculty": "情報理工学部"
-}
-
 def make_reservation(date_str: str, time_slot_text: str):
     service = Service(CHROMEDRIVER_PATH)
     options = Options()
