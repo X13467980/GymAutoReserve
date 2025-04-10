@@ -6,9 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
-# ✅ 自分のChromeDriverのパスを指定してください！
-CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"  # ← Mac/Linuxの例（確認してね）
-# CHROMEDRIVER_PATH = "C:\\Users\\YourName\\Downloads\\chromedriver.exe"  # ← Windowsの例
+CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
 USER_INFO = {
     "name": "矢野陽大",
@@ -18,12 +16,9 @@ USER_INFO = {
 }
 
 def make_reservation(date_str: str, time_slot_text: str):
-    # ChromeDriverサービス指定
     service = Service(CHROMEDRIVER_PATH)
-    
-    # Chromeオプション（必要に応じてheadless除外）
     options = Options()
-    # options.add_argument("--headless")  # ← 表示確認したいときはコメントアウトしてね！
+    # options.add_argument("--headless")  # 表示確認したいときはコメントアウトのままでOK
 
     driver = webdriver.Chrome(service=service, options=options)
 
@@ -39,8 +34,12 @@ def make_reservation(date_str: str, time_slot_text: str):
         time.sleep(2)
 
         year, month, day = map(int, date_str.split('-'))
-        xpath = f'//td[@data-day="{year}-{month:02d}-{day:02d}"]//div[contains(@class, "blue")]'
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, xpath))).click()
+
+        # ✅ 正しい<a>タグ（id指定）をクリックして日付選択
+        xpath = f'//a[@id="{year}-{month}-{day}_td_cls"]'
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, xpath))
+        ).click()
         print(f"✅ 日付 {date_str} を選択しました")
         time.sleep(1)
 
@@ -66,6 +65,10 @@ def make_reservation(date_str: str, time_slot_text: str):
         print("✅ 最終確認へ進みました")
 
         time.sleep(5)
+
+    except Exception as e:
+        driver.save_screenshot("error_screenshot.png")
+        print(f"❌ エラー発生: {e}")
 
     finally:
         driver.quit()
