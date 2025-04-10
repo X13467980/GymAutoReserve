@@ -5,14 +5,16 @@ from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,
     QuickReply, QuickReplyButton, MessageAction
 )
+from main import make_reservation
 import os
 from dotenv import load_dotenv
-from your_reservation_script import make_reservation  # ここは予約関数の場所に応じて修正
 
 # .env 読み込み
 load_dotenv()
 
 app = Flask(__name__)
+
+print("SECRET:", os.getenv("LINE_CHANNEL_SECRET"))
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
