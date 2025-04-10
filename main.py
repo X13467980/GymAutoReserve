@@ -94,7 +94,18 @@ def make_reservation(date_str: str, time_slot_text: str):
             print(f"入力後の『次へ』ボタンのクリックに失敗しました: {e}")
             return
 
-        time.sleep(5)
+        try:
+            print("予約確定ボタン（JavaScript）を実行中…")
+            driver.execute_script("goSubmitWithGC2();")
+            print("✅ JavaScript による予約確定を試行しました")
+            time.sleep(5)
+            driver.save_screenshot("reservation_done.png")  # スクリーンショット確認用
+        except Exception as e:
+            driver.save_screenshot("reservation_confirm_error.png")
+            print(f"❌ JavaScript予約確定に失敗しました: {e}")
+            return
+
+        time.sleep(3)
 
     except Exception as e:
         driver.save_screenshot("error_screenshot.png")
@@ -104,4 +115,4 @@ def make_reservation(date_str: str, time_slot_text: str):
         driver.quit()
 
 if __name__ == "__main__":
-    make_reservation("2025-04-16", "14:30～15:45")
+    make_reservation("2025-04-17", "14:30～15:45")
