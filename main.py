@@ -71,9 +71,8 @@ def make_reservation(date_str: str, time_slot_text: str):
             driver.find_element(By.NAME, "name").send_keys(USER_INFO["name"])
             driver.find_element(By.NAME, "email").send_keys(USER_INFO["email"])
             driver.find_element(By.NAME, "email_conf").send_keys(USER_INFO["email"])
-            driver.find_element(By.NAME, "no").send_keys(USER_INFO["permit"])
-            driver.find_element(By.NAME, "other").send_keys(USER_INFO["faculty"])
-            driver.find_element(By.NAME, "other2").send_keys("特になし")
+            driver.find_element(By.NAME, "other").send_keys(USER_INFO["permit"])
+            driver.find_element(By.NAME, "other2").send_keys(USER_INFO["faculty"])
             print("✅ 入力フォーム完了")
         except Exception as e:
             driver.save_screenshot("form_input_error.png")
