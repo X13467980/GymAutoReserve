@@ -5,6 +5,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 import time
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # .envファイルを読み込む
+
+USER_INFO = {
+    "name": os.getenv("USER_NAME"),
+    "email": os.getenv("USER_EMAIL"),
+    "permit": os.getenv("USER_PERMIT"),
+    "faculty": os.getenv("USER_FACULTY")
+}
 
 CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
