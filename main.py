@@ -22,7 +22,7 @@ CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 def make_reservation(date_str: str, time_slot_text: str):
     service = Service(CHROMEDRIVER_PATH)
     options = Options()
-    # options.add_argument("--headless")
+    # options.add_argument("--headless")  # 手動reCAPTCHA対応のためコメントアウト
 
     driver = webdriver.Chrome(service=service, options=options)
 
@@ -58,54 +58,38 @@ def make_reservation(date_str: str, time_slot_text: str):
             print(f"時間帯「{time_slot_text}」が見つかりませんでした: {e}")
             return
 
-        try:
-            print("『次へ』ボタンを待機中…")
-            WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, '//input[@type="button" and @value="次へ"]'))
-            ).click()
-            print("次へをクリック")
-        except Exception as e:
-            driver.save_screenshot("next_button_error.png")
-            print(f"『次へ』ボタンのクリックに失敗しました: {e}")
-            return
+        print("『次へ』ボタンを待機中…")
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//input[@type="button" and @value="次へ"]'))
+        ).click()
+        print("次へをクリック")
 
-        try:
-            print("入力フォームの読み込みを待機中…")
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "name")))
-            driver.find_element(By.NAME, "name").send_keys(USER_INFO["name"])
-            driver.find_element(By.NAME, "email").send_keys(USER_INFO["email"])
-            driver.find_element(By.NAME, "email_conf").send_keys(USER_INFO["email"])
-            driver.find_element(By.NAME, "other").send_keys(USER_INFO["permit"])
-            driver.find_element(By.NAME, "other2").send_keys(USER_INFO["faculty"])
-            print("入力フォーム完了")
-        except Exception as e:
-            driver.save_screenshot("form_input_error.png")
-            print(f"入力フォームの読み込みに失敗しました: {e}")
-            return
+        print("入力フォームの読み込みを待機中…")
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "name")))
+        driver.find_element(By.NAME, "name").send_keys(USER_INFO["name"])
+        driver.find_element(By.NAME, "email").send_keys(USER_INFO["email"])
+        driver.find_element(By.NAME, "email_conf").send_keys(USER_INFO["email"])
+        driver.find_element(By.NAME, "other").send_keys(USER_INFO["permit"])
+        driver.find_element(By.NAME, "other2").send_keys(USER_INFO["faculty"])
+        print("入力フォーム完了")
 
-        try:
-            print("最終確認の『次へ』ボタンを待機中…")
-            WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, '//input[@type="submit" and @value="次へ"]'))
-            ).click()
-            print("最終確認へ進みました")
-        except Exception as e:
-            driver.save_screenshot("form_next_button_error.png")
-            print(f"入力後の『次へ』ボタンのクリックに失敗しました: {e}")
-            return
+        print("最終確認の『次へ』ボタンを待機中…")
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//input[@type="submit" and @value="次へ"]'))
+        ).click()
+        print("最終確認へ進みました")
 
-        try:
-            print("予約確定ボタン（JavaScript）を実行中…")
-            driver.execute_script("goSubmitWithGC2();")
-            print("✅ JavaScript による予約確定を試行しました")
-            time.sleep(5)
-            driver.save_screenshot("reservation_done.png")  # スクリーンショット確認用
-        except Exception as e:
-            driver.save_screenshot("reservation_confirm_error.png")
-            print(f"❌ JavaScript予約確定に失敗しました: {e}")
-            return
+        print("✅ ここで手動でreCAPTCHAを通過してください（30秒待機）")
+        driver.save_screenshot("before_recaptcha.png")
+        time.sleep(30)
 
-        time.sleep(3)
+        print("予約確定ボタンを直接クリック中…")
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "ebtn_id"))
+        ).click()
+        print("✅ 予約確定ボタンを直接クリックしました！")
+        time.sleep(5)
+        driver.save_screenshot("reservation_done.png")
 
     except Exception as e:
         driver.save_screenshot("error_screenshot.png")
