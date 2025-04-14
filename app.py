@@ -110,7 +110,7 @@ def handle_message(event):
                         to=user_id,
                         messages=[
                             TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}"),
-                            TextMessage(text=logs)
+                            TextMessage(text=str(logs))
                         ]
                     )
                 )
