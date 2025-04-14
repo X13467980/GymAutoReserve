@@ -9,40 +9,32 @@ from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 
 from datetime import datetime, timedelta
+from threading import Thread
 import os
 from dotenv import load_dotenv
-from main import make_reservation  # 🔽 予約処理
+
+# 🔽 予約処理関数をインポート
+from main import make_reservation
 
 load_dotenv()
-
 app = Flask(__name__)
 
 channel_secret = os.getenv("LINE_CHANNEL_SECRET")
 access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-
-print("✅ CHANNEL SECRET:", channel_secret)
-print("✅ ACCESS TOKEN:", access_token)
-
-if not channel_secret or not access_token:
-    print("❌ .env の読み込み失敗！")
-    exit(1)
 
 configuration = Configuration(access_token=access_token)
 api_client = ApiClient(configuration)
 messaging_api = MessagingApi(api_client)
 handler = WebhookHandler(channel_secret)
 
-# ✅ 状態管理
 user_state = {}
 
 def generate_date_quick_reply():
     today = datetime.now()
-    quick_items = []
-    for i in range(6):
-        date = today + timedelta(days=i)
-        label = f"{date.month}月{date.day}日"
-        text = date.strftime("%Y-%m-%d")
-        quick_items.append(QuickReplyItem(action=MessageAction(label=label, text=text)))
+    quick_items = [
+        QuickReplyItem(action=MessageAction(label=f"{(today + timedelta(days=i)).month}月{(today + timedelta(days=i)).day}日", text=(today + timedelta(days=i)).strftime("%Y-%m-%d")))
+        for i in range(6)
+    ]
     return QuickReply(items=quick_items)
 
 def generate_time_quick_reply():
@@ -60,39 +52,28 @@ def callback():
     signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
 
-    print("==== Webhook受信 ====")
-    print("Signature:", signature)
-    print("Body:", body)
-    print("=====================")
-
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-        print("❌ 署名検証エラー！")
         abort(403)
 
     return "OK"
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
-    print("💬 LINEからメッセージ受信")
     user_id = event.source.user_id
     reply_token = event.reply_token
     text = event.message.text.strip()
-
-    print(f"[{user_id}] {text}")
 
     if text == "予約":
         user_state[user_id] = {"step": "waiting_for_date"}
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=reply_token,
-                messages=[
-                    TextMessage(
-                        text="予約したい日付を選んでください",
-                        quick_reply=generate_date_quick_reply()
-                    )
-                ]
+                messages=[TextMessage(
+                    text="予約したい日付を選んでください",
+                    quick_reply=generate_date_quick_reply()
+                )]
             )
         )
         return
@@ -103,12 +84,10 @@ def handle_message(event):
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=reply_token,
-                messages=[
-                    TextMessage(
-                        text=f"{text} の時間帯を選んでください",
-                        quick_reply=generate_time_quick_reply()
-                    )
-                ]
+                messages=[TextMessage(
+                    text=f"{text} の時間帯を選んでください",
+                    quick_reply=generate_time_quick_reply()
+                )]
             )
         )
         return
@@ -117,32 +96,36 @@ def handle_message(event):
         selected_date = user_state[user_id]["date"]
         selected_time = text
 
-        # ✅ reply_token が失効しないうちに即レス
+        # 即時返信（reply_tokenが切れる前に）
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=reply_token,
-                messages=[TextMessage(text="⏳ 予約を処理中です。しばらくお待ちください。")]
+                messages=[TextMessage(text="⏳ 予約処理を開始しました。完了後に通知します。")]
             )
         )
 
-        # ✅ その後、予約処理をバックエンドで続行
-        try:
-            make_reservation(selected_date, selected_time)
-            print(f"✅ 予約完了: {selected_date} {selected_time}")
-        except Exception as e:
-            print(f"❌ 予約失敗: {e}")
+        # 非同期で予約処理
+        def background_task():
+            try:
+                make_reservation(selected_date, selected_time)
+                messaging_api.push_message(
+                    to=user_id,
+                    messages=[TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}")]
+                )
+            except Exception as e:
+                messaging_api.push_message(
+                    to=user_id,
+                    messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
+                )
 
-        # 状態をクリア
+        Thread(target=background_task).start()
         user_state.pop(user_id, None)
         return
 
-    # 最初のトリガー
+    # 初期メッセージ
     messaging_api.reply_message(
         ReplyMessageRequest(
             reply_token=reply_token,
             messages=[TextMessage(text="「予約」と送って始めてください！")]
         )
     )
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
