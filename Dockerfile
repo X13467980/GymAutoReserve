@@ -24,4 +24,4 @@ ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMEDRIVER_PATH=/usr/lib/chromium/chromedriver
 
 # 起動コマンド（任意でFastAPIとかFlaskなら uvicorn 起動でも可）
-CMD ["python", "main.py"]
+CMD ["python", "app.py"]
