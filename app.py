@@ -103,20 +103,27 @@ def handle_message(event):
 
         def background_task():
             try:
-                logs = make_reservation(selected_date, selected_time)
+                logs, image_path = make_reservation(selected_date, selected_time)
+
+                # 予約完了のメッセージ
                 messaging_api.push_message(
-                    PushMessageRequest(
-                        to=user_id,
-                        messages=[TextMessage(text=f"✅ 予約完了しました！\n\n{logs}")]
-                    )
+                    to=user_id,
+                    messages=[TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}\n\n{logs}")]
                 )
+
+                # スクリーンショットの送信
+                with open(image_path, "rb") as f:
+                    messaging_api.push_message(
+                        to=user_id,
+                        messages=[TextMessage(text="📸 スクリーンショットを送信します（仮）※実装では画像送信に変更）")]
+                        # 実際には ImageMessage を使用（LINEのMessaging APIでは画像URLを使うかContent APIで送信）
+                    )
+
             except Exception as e:
                 messaging_api.push_message(
-                    PushMessageRequest(
-                        to=user_id,
-                        messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
-                    )
-                )  
+                    to=user_id,
+                    messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
+                )
 
         Thread(target=background_task).start()
         user_state.pop(user_id, None)

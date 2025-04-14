@@ -91,7 +91,7 @@ def make_reservation(date_str: str, time_slot_text: str):
     finally:
         driver.quit()
 
-    return "\n".join(logs)
+    return "\n".join(logs), "reservation_done.png"
 
 # テスト実行
 if __name__ == "__main__":
