@@ -107,8 +107,10 @@ def handle_message(event):
 
                 # 予約完了のメッセージ
                 messaging_api.push_message(
-                    to=user_id,
-                    messages=[TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}\n\n{logs}")]
+                    PushMessageRequest(
+                        to=user_id,
+                        messages=[TextMessage(text="✅ 予約完了しました！")]
+                    )
                 )
 
                 # スクリーンショットの送信
@@ -121,8 +123,10 @@ def handle_message(event):
 
             except Exception as e:
                 messaging_api.push_message(
-                    to=user_id,
+                    PushMessageRequest(
+                        to=user_id,
                     messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
+                    )
                 )
 
         Thread(target=background_task).start()
