@@ -20,8 +20,8 @@ USER_INFO = {
 }
 
 # Chrome 実行バイナリとChromeDriverパス（Dockerfileの ENV を使う）
-CHROME_BIN = os.getenv("CHROME_BIN", "/usr/bin/google-chrome")
-CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH", "/usr/local/bin/chromedriver")
+CHROME_BIN = os.getenv("CHROME_BIN", "/usr/bin/chromium")
+CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH", "/usr/lib/chromium/chromedriver")
 
 def make_reservation(date_str: str, time_slot_text: str):
     options = Options()

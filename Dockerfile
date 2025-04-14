@@ -1,28 +1,27 @@
 FROM python:3.10-slim
 
-# Google Chromeのインストール
+# ChromeとChromeDriverをインストール（arm64対応）
 RUN apt-get update && apt-get install -y \
-    wget curl unzip gnupg ca-certificates \
+    curl unzip gnupg wget ca-certificates \
     fonts-liberation libglib2.0-0 libnss3 libgconf-2-4 \
     libxss1 libappindicator3-1 libasound2 libatk-bridge2.0-0 libgtk-3-0 \
-    && curl -sSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list \
-    && apt-get update && apt-get install -y google-chrome-stable \
-    && CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE) \
-    && wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip \
-    && unzip /tmp/chromedriver.zip -d /usr/local/bin/ \
-    && chmod +x /usr/local/bin/chromedriver \
-    && rm /tmp/chromedriver.zip
+    chromium chromium-driver \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# 作業ディレクトリと依存ライブラリ
+# 作業ディレクトリ
 WORKDIR /app
+
+# requirements
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# アプリ本体
 COPY . .
 
-# 環境変数
-ENV CHROME_BIN=/usr/bin/google-chrome
-ENV CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+# 環境変数（Selenium用）
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER_PATH=/usr/lib/chromium/chromedriver
 
-# アプリ起動（必要に応じて変更）
+# 起動コマンド（任意でFastAPIとかFlaskなら uvicorn 起動でも可）
 CMD ["python", "main.py"]
