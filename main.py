@@ -11,6 +11,7 @@ import os
 # .env 読み込み
 load_dotenv()
 
+# ユーザー情報を環境変数から取得
 USER_INFO = {
     "name": os.getenv("USER_NAME"),
     "email": os.getenv("USER_EMAIL"),
@@ -18,9 +19,9 @@ USER_INFO = {
     "faculty": os.getenv("USER_FACULTY")
 }
 
-# DockerfileのENVを尊重
-CHROME_BIN = os.getenv("CHROME_BIN")
-CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH")
+# Chrome 実行バイナリとChromeDriverパス（Dockerfileの ENV を使う）
+CHROME_BIN = os.getenv("CHROME_BIN", "/usr/bin/google-chrome")
+CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH", "/usr/local/bin/chromedriver")
 
 def make_reservation(date_str: str, time_slot_text: str):
     options = Options()
@@ -36,24 +37,31 @@ def make_reservation(date_str: str, time_slot_text: str):
         driver.get("https://select-type.com/rsv/?id=KatPteH9vEg")
         print("✅ ページを開きました")
 
+        # 会場選択
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "select")))
         Select(driver.find_element(By.TAG_NAME, "select")).select_by_visible_text("OICトレーニングルーム/OIC Gymnasium")
         print("✅ 会場を選択しました")
         time.sleep(2)
 
+        # 日付選択
         year, month, day = map(int, date_str.split('-'))
         date_xpath = f'//a[@id="{year}-{month}-{day}_td_cls"]'
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, date_xpath))).click()
         print(f"✅ 日付 {date_str} を選択しました")
         time.sleep(1)
 
+        # 時間帯選択
         time_xpath = f'//a[contains(@class, "res-label") and contains(text(), "{time_slot_text}")]'
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, time_xpath))).click()
         print(f"✅ 時間帯「{time_slot_text}」を選択しました")
 
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//input[@type="button" and @value="次へ"]'))).click()
+        # 次へボタン
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//input[@type="button" and @value="次へ"]'))
+        ).click()
         print("✅ 『次へ』をクリックしました")
 
+        # 入力フォーム
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "name")))
         driver.find_element(By.NAME, "name").send_keys(USER_INFO["name"])
         driver.find_element(By.NAME, "email").send_keys(USER_INFO["email"])
@@ -62,14 +70,21 @@ def make_reservation(date_str: str, time_slot_text: str):
         driver.find_element(By.NAME, "other2").send_keys(USER_INFO["faculty"])
         print("✅ フォームに入力しました")
 
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//input[@type="submit" and @value="次へ"]'))).click()
+        # 最終確認へ
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//input[@type="submit" and @value="次へ"]'))
+        ).click()
         print("✅ 最終確認へ進みました")
 
+        # reCAPTCHA 対応
         print("⚠️ reCAPTCHA 対応してください（30秒待機）")
         driver.save_screenshot("before_recaptcha.png")
         time.sleep(30)
 
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "ebtn_id"))).click()
+        # 確定
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "ebtn_id"))
+        ).click()
         print("✅ 予約確定ボタンをクリックしました")
         driver.save_screenshot("reservation_done.png")
         time.sleep(3)
@@ -81,5 +96,6 @@ def make_reservation(date_str: str, time_slot_text: str):
     finally:
         driver.quit()
 
+# 実行例
 if __name__ == "__main__":
     make_reservation("2025-04-17", "14:30～15:45")
