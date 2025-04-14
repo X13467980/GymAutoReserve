@@ -11,9 +11,7 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
-
-# 🔽 予約処理関数をインポート
-from main import make_reservation
+from main import make_reservation  # 🔽 予約処理
 
 load_dotenv()
 
@@ -40,13 +38,11 @@ user_state = {}
 def generate_date_quick_reply():
     today = datetime.now()
     quick_items = []
-
     for i in range(6):
         date = today + timedelta(days=i)
         label = f"{date.month}月{date.day}日"
         text = date.strftime("%Y-%m-%d")
         quick_items.append(QuickReplyItem(action=MessageAction(label=label, text=text)))
-
     return QuickReply(items=quick_items)
 
 def generate_time_quick_reply():
@@ -121,21 +117,26 @@ def handle_message(event):
         selected_date = user_state[user_id]["date"]
         selected_time = text
 
-        try:
-            make_reservation(selected_date, selected_time)
-            reply_text = f"✅ 予約完了しました！\n{selected_date} {selected_time}"
-        except Exception as e:
-            reply_text = f"❌ 予約に失敗しました。\nエラー: {str(e)}"
-
+        # ✅ reply_token が失効しないうちに即レス
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=reply_token,
-                messages=[TextMessage(text=reply_text)]
+                messages=[TextMessage(text="⏳ 予約を処理中です。しばらくお待ちください。")]
             )
         )
+
+        # ✅ その後、予約処理をバックエンドで続行
+        try:
+            make_reservation(selected_date, selected_time)
+            print(f"✅ 予約完了: {selected_date} {selected_time}")
+        except Exception as e:
+            print(f"❌ 予約失敗: {e}")
+
+        # 状態をクリア
         user_state.pop(user_id, None)
         return
 
+    # 最初のトリガー
     messaging_api.reply_message(
         ReplyMessageRequest(
             reply_token=reply_token,
