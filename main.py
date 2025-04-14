@@ -8,8 +8,10 @@ import time
 from dotenv import load_dotenv
 import os
 
+# .env 読み込み
 load_dotenv()
 
+# ユーザー情報を環境変数から取得
 USER_INFO = {
     "name": os.getenv("USER_NAME"),
     "email": os.getenv("USER_EMAIL"),
@@ -17,6 +19,7 @@ USER_INFO = {
     "faculty": os.getenv("USER_FACULTY")
 }
 
+# Chrome 実行バイナリとChromeDriverパス（Dockerfileの ENV を使う）
 CHROME_BIN = os.getenv("CHROME_BIN", "/usr/bin/chromium")
 CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH", "/usr/lib/chromium/chromedriver")
 
@@ -27,11 +30,15 @@ def make_reservation(date_str: str, time_slot_text: str):
         print(msg)
         logs.append(msg)
 
+    # ✅ Docker環境対応のChromeオプション
     options = Options()
     options.binary_location = CHROME_BIN
-    options.add_argument("--headless")
+    options.add_argument("--headless=new")  # 重要: DevToolsActivePort対策
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--remote-debugging-port=9222")
 
     service = Service(CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
@@ -86,5 +93,6 @@ def make_reservation(date_str: str, time_slot_text: str):
 
     return "\n".join(logs)
 
+# テスト実行
 if __name__ == "__main__":
     print(make_reservation("2025-04-17", "14:30～15:45"))
