@@ -105,14 +105,18 @@ def handle_message(event):
             try:
                 logs = make_reservation(selected_date, selected_time)
                 messaging_api.push_message(
-                    to=user_id,
-                    messages=[TextMessage(text=f"✅ 予約完了！\n\n{logs}")]
+                    PushMessageRequest(
+                        to=user_id,
+                        messages=[TextMessage(text=f"✅ 予約完了しました！\n\n{logs}")]
+                    )
                 )
             except Exception as e:
                 messaging_api.push_message(
-                    to=user_id,
-                    messages=[TextMessage(text=f"❌ 予約失敗\nエラー: {str(e)}")]
-                )
+                    PushMessageRequest(
+                        to=user_id,
+                        messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
+                    )
+                )  
 
         Thread(target=background_task).start()
         user_state.pop(user_id, None)
