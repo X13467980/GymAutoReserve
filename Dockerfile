@@ -1,57 +1,30 @@
 FROM python:3.10-slim
 
-# 環境変数でChromeとDriverのパスを指定
-ENV CHROME_BIN=/usr/bin/chromium
-ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
-
-# 必要なパッケージをインストール
+# Chrome と ChromeDriver をセットアップ
 RUN apt-get update && apt-get install -y \
-    chromium \
-    chromium-driver \
-    fonts-liberation \
-    libappindicator3-1 \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libc6 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
-    libgbm1 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libx11-6 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxrandr2 \
-    libxss1 \
-    libxtst6 \
-    xdg-utils \
-    wget \
-    curl \
-    unzip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    wget unzip curl gnupg ca-certificates fonts-liberation \
+    libnss3 libatk-bridge2.0-0 libgtk-3-0 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 \
+    libxss1 libasound2 libxtst6 libappindicator3-1 \
+    && wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && dpkg -i google-chrome-stable_current_amd64.deb || apt-get -fy install \
+    && rm google-chrome-stable_current_amd64.deb \
+    && CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE) \
+    && wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip \
+    && unzip /tmp/chromedriver.zip -d /usr/bin \
+    && chmod +x /usr/bin/chromedriver \
+    && rm /tmp/chromedriver.zip
 
-# 作業ディレクトリを指定
+# 作業ディレクトリと依存ライブラリ
 WORKDIR /app
-
-# Pythonライブラリのインストール
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# アプリのコードをコピー
+# アプリコードをコピー
 COPY . .
 
-# ポート設定（必要に応じて変更可能）
-EXPOSE 5000
+# 環境変数（必要なら）
+ENV CHROME_BIN=/usr/bin/google-chrome \
+    CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# 起動コマンド
-CMD ["python", "app.py"]
+# 実行
+CMD ["python", "main.py"]
