@@ -3,7 +3,8 @@ from linebot.v3 import WebhookHandler
 from linebot.v3.messaging import (
     MessagingApi, ReplyMessageRequest, TextMessage,
     Configuration, ApiClient,
-    QuickReply, QuickReplyItem, MessageAction
+    QuickReply, QuickReplyItem, MessageAction,
+    PushMessageRequest
 )
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
@@ -13,7 +14,6 @@ from threading import Thread
 import os
 from dotenv import load_dotenv
 from main import make_reservation
-from linebot.v3.messaging import PushMessageRequest
 
 load_dotenv()
 app = Flask(__name__)
@@ -103,29 +103,22 @@ def handle_message(event):
 
         def background_task():
             try:
-                logs, image_path = make_reservation(selected_date, selected_time)
+                logs = make_reservation(selected_date, selected_time)
 
-                # 予約完了のメッセージ
                 messaging_api.push_message(
                     PushMessageRequest(
                         to=user_id,
-                        messages=[TextMessage(text="✅ 予約完了しました！")]
+                        messages=[
+                            TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}"),
+                            TextMessage(text=logs)
+                        ]
                     )
                 )
-
-                # スクリーンショットの送信
-                with open(image_path, "rb") as f:
-                    messaging_api.push_message(
-                        to=user_id,
-                        messages=[TextMessage(text="📸 スクリーンショットを送信します（仮）※実装では画像送信に変更）")]
-                        # 実際には ImageMessage を使用（LINEのMessaging APIでは画像URLを使うかContent APIで送信）
-                    )
-
             except Exception as e:
                 messaging_api.push_message(
                     PushMessageRequest(
                         to=user_id,
-                    messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
+                        messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
                     )
                 )
 
