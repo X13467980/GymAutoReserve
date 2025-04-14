@@ -18,15 +18,17 @@ USER_INFO = {
 }
 
 def make_reservation(date_str: str, time_slot_text: str):
-    # Render/Docker環境に最適化
-    service = Service("/usr/bin/chromedriver")
+
     options = Options()
-    options.binary_location = "/usr/bin/chromium"
+    options.binary_location = os.getenv("CHROME_BIN", "/usr/bin/chromium")
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    driver = webdriver.Chrome(service=service, options=options)
+    driver = webdriver.Chrome(
+        service=Service(os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")),
+        options=options
+    )
 
     try:
         driver.get("https://select-type.com/rsv/?id=KatPteH9vEg")
