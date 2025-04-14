@@ -100,3 +100,10 @@ def make_reservation(date_str: str, time_slot_text: str):
 
 if __name__ == "__main__":
     make_reservation("2025-04-17", "14:30～15:45")
+
+
+options = Options()
+options.binary_location = "/usr/bin/chromium"
+options.add_argument("--headless")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
