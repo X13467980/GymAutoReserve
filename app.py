@@ -13,7 +13,6 @@ from threading import Thread
 import os
 from dotenv import load_dotenv
 
-# 🔽 予約処理関数をインポート
 from main import make_reservation
 
 load_dotenv()
@@ -31,11 +30,10 @@ user_state = {}
 
 def generate_date_quick_reply():
     today = datetime.now()
-    quick_items = [
+    return QuickReply(items=[
         QuickReplyItem(action=MessageAction(label=f"{(today + timedelta(days=i)).month}月{(today + timedelta(days=i)).day}日", text=(today + timedelta(days=i)).strftime("%Y-%m-%d")))
         for i in range(6)
-    ]
-    return QuickReply(items=quick_items)
+    ])
 
 def generate_time_quick_reply():
     times = ["14:30～15:45", "16:00～17:15"]
@@ -96,7 +94,6 @@ def handle_message(event):
         selected_date = user_state[user_id]["date"]
         selected_time = text
 
-        # 即時返信（reply_tokenが切れる前に）
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=reply_token,
@@ -104,25 +101,23 @@ def handle_message(event):
             )
         )
 
-        # 非同期で予約処理
         def background_task():
             try:
-                make_reservation(selected_date, selected_time)
+                logs = make_reservation(selected_date, selected_time)
                 messaging_api.push_message(
                     to=user_id,
-                    messages=[TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}")]
+                    messages=[TextMessage(text=f"✅ 予約完了！\n\n{logs}")]
                 )
             except Exception as e:
                 messaging_api.push_message(
                     to=user_id,
-                    messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
+                    messages=[TextMessage(text=f"❌ 予約失敗\nエラー: {str(e)}")]
                 )
 
         Thread(target=background_task).start()
         user_state.pop(user_id, None)
         return
 
-    # 初期メッセージ
     messaging_api.reply_message(
         ReplyMessageRequest(
             reply_token=reply_token,
