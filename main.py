@@ -26,9 +26,12 @@ CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH", "/usr/lib/chromium/chromedriv
 def make_reservation(date_str: str, time_slot_text: str):
     options = Options()
     options.binary_location = CHROME_BIN
-    options.add_argument("--headless")
+    options.add_argument("--headless=new")  # ←ここ重要。新しいヘッドレスモードを使う
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-setuid-sandbox")
+    options.add_argument("--remote-debugging-port=9222")  # ← これがないと DevToolsActivePort が作られない
 
     service = Service(CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
