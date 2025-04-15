@@ -30,16 +30,26 @@ user_state = {}
 
 def generate_date_quick_reply():
     today = datetime.now()
-    return QuickReply(items=[
-        QuickReplyItem(action=MessageAction(label=f"{(today + timedelta(days=i)).month}月{(today + timedelta(days=i)).day}日", text=(today + timedelta(days=i)).strftime("%Y-%m-%d")))
-        for i in range(6)
-    ])
+    date_items = [
+        QuickReplyItem(action=MessageAction(
+            label=f"{(today + timedelta(days=i)).month}月{(today + timedelta(days=i)).day}日",
+            text=(today + timedelta(days=i)).strftime("%Y-%m-%d")
+        )) for i in range(6)
+    ]
+    date_items.append(
+        QuickReplyItem(action=MessageAction(label="キャンセル", text="キャンセル"))
+    )
+    return QuickReply(items=date_items)
 
 def generate_time_quick_reply():
     times = ["14:30～15:45", "16:00～17:15"]
-    return QuickReply(items=[
+    time_items = [
         QuickReplyItem(action=MessageAction(label=t, text=t)) for t in times
-    ])
+    ]
+    time_items.append(
+        QuickReplyItem(action=MessageAction(label="キャンセル", text="キャンセル"))
+    )
+    return QuickReply(items=time_items)
 
 @app.route("/", methods=["GET"])
 def root():
@@ -62,6 +72,16 @@ def handle_message(event):
     user_id = event.source.user_id
     reply_token = event.reply_token
     text = event.message.text.strip()
+
+    if text == "キャンセル":
+        user_state.pop(user_id, None)
+        messaging_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=reply_token,
+                messages=[TextMessage(text="❌ 予約をキャンセルしました。")]
+            )
+        )
+        return
 
     if text == "予約":
         user_state[user_id] = {"step": "waiting_for_date"}
