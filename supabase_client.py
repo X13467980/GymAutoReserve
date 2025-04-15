@@ -27,11 +27,6 @@ def get_user_info_from_supabase(line_user_id: str):
 
 def register_user_in_supabase(line_user_id, name, email, permit, faculty):
     try:
-        # すでに存在しているかチェック
-        existing = supabase.table("users").select("id").eq("line_user_id", line_user_id).execute()
-        if existing.data and len(existing.data) > 0:
-            raise Exception("このユーザーはすでに登録されています。")
-
         user_data = {
             "line_user_id": line_user_id,
             "name": name,
@@ -40,9 +35,13 @@ def register_user_in_supabase(line_user_id, name, email, permit, faculty):
             "faculty": faculty
         }
 
-        print("📦 登録するデータ:", user_data)
+        print("📦 登録または更新するデータ:", user_data)
 
-        response = supabase.table("users").insert([user_data]).execute()
+        # 🟡 line_user_id をキーに upsert（登録 or 更新）
+        response = supabase.table("users").upsert(
+            [user_data], on_conflict="line_user_id"
+        ).execute()
+
         print("✅ Supabase response:", response)
         return response
 
