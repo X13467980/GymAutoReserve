@@ -42,7 +42,16 @@ def generate_date_quick_reply():
     return QuickReply(items=date_items)
 
 def generate_time_quick_reply():
-    times = ["14:30～15:45", "16:00～17:15"]
+    times = [
+        "09:00～10:00",
+        "10:00～11:00",
+        "13:15～14:30",
+        "14:30～15:45",
+        "15:45～17:00",
+        "17:00～18:15",
+        "18:15～19:30",
+        "19:30～20:45"
+    ]
     time_items = [
         QuickReplyItem(action=MessageAction(label=t, text=t)) for t in times
     ]
