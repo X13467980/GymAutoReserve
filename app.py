@@ -122,7 +122,7 @@ def handle_message(event):
 
         try:
             register_user_in_supabase(
-                user_id=user_id,
+                line_user_id=user_id,
                 name=state["name"],
                 email=state["email"],
                 permit=state["permit"],
