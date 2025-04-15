@@ -41,6 +41,7 @@ def register_user_in_supabase(line_user_id, name, email, permit, faculty):
         print("✅ Supabase response:", response)
         return response
     except Exception as e:
+        tb = traceback.format_exc()
         print("❌ 登録時にエラー:", str(e))
-        print("🧵 トレース:", traceback.format_exc())
-        raise
+        print("🧵 トレース:", tb)
+        raise Exception(f"登録中に例外が発生しました: {e}\n\n{tb}")
