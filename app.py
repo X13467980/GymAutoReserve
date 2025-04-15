@@ -14,6 +14,7 @@ from threading import Thread
 import os
 from dotenv import load_dotenv
 from main import make_reservation
+from supabase_client import get_user_info_from_supabase  # ✅ Supabaseから個人情報取得用
 
 load_dotenv()
 app = Flask(__name__)
@@ -132,14 +133,19 @@ def handle_message(event):
 
         def background_task():
             try:
-                logs = make_reservation(selected_date, selected_time)
+                # ✅ Supabaseからユーザーの個人情報を取得
+                user_info = get_user_info_from_supabase(user_id)
 
+                # ✅ 予約処理
+                logs, _ = make_reservation(selected_date, selected_time, user_info)
+
+                # ✅ LINEにログを通知
                 messaging_api.push_message(
                     PushMessageRequest(
                         to=user_id,
                         messages=[
-                            TextMessage(text=f"予約完了しました！\n{selected_date} {selected_time}"),
-                            TextMessage(text=str(logs))
+                            TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}"),
+                            TextMessage(text=logs)
                         ]
                     )
                 )
@@ -147,7 +153,7 @@ def handle_message(event):
                 messaging_api.push_message(
                     PushMessageRequest(
                         to=user_id,
-                        messages=[TextMessage(text=f"予約に失敗しました。\nエラー: {str(e)}")]
+                        messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
                     )
                 )
 
