@@ -27,6 +27,11 @@ def get_user_info_from_supabase(line_user_id: str):
 
 def register_user_in_supabase(line_user_id, name, email, permit, faculty):
     try:
+        # すでに存在しているかチェック
+        existing = supabase.table("users").select("id").eq("line_user_id", line_user_id).execute()
+        if existing.data and len(existing.data) > 0:
+            raise Exception("このユーザーはすでに登録されています。")
+
         user_data = {
             "line_user_id": line_user_id,
             "name": name,
@@ -37,11 +42,13 @@ def register_user_in_supabase(line_user_id, name, email, permit, faculty):
 
         print("📦 登録するデータ:", user_data)
 
-        response = supabase.table("line_users").insert([user_data]).execute()
+        response = supabase.table("users").insert([user_data]).execute()
         print("✅ Supabase response:", response)
         return response
+
     except Exception as e:
-        tb = traceback.format_exc()
         print("❌ 登録時にエラー:", str(e))
-        print("🧵 トレース:", tb)
-        raise Exception(f"登録中に例外が発生しました: {e}\n\n{tb}")
+        print("🧵 トレース:", traceback.format_exc())
+        if hasattr(e, 'args') and e.args:
+            raise Exception(f"登録中に例外が発生しました: {e.args[0]}")
+        raise
