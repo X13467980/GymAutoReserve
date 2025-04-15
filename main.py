@@ -63,7 +63,6 @@ def make_reservation(date_str: str, time_slot_text: str, user_info: dict):
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//input[@type="submit" and @value="次へ"]'))).click()
         log("✅ 最終確認へ進みました")
 
-        log("⚠️ reCAPTCHA 対応してください（30秒待機）")
         driver.save_screenshot("before_recaptcha.png")
         time.sleep(30)
 
