@@ -22,3 +22,13 @@ def get_user_info_from_supabase(line_user_id: str):
         "permit": user["permit"],
         "faculty": user["faculty"]
     }
+
+def register_user_in_supabase(line_user_id: str, name: str, email: str, permit: str, faculty: str):
+    response = supabase.table("line_users").insert([{
+        "line_user_id": line_user_id,
+        "name": name,
+        "email": email,
+        "permit": permit,
+        "faculty": faculty
+    }]).execute()
+    return response
