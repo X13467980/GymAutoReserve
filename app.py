@@ -96,7 +96,7 @@ def handle_message(event):
         state["step"] = "register_email"
         messaging_api.reply_message(ReplyMessageRequest(
             reply_token=reply_token,
-            messages=[TextMessage(text="📧 メールアドレスを入力してください。")]
+            messages=[TextMessage(text="学内メールアドレスを入力してください。")]
         ))
         return
 
@@ -105,7 +105,7 @@ def handle_message(event):
         state["step"] = "register_permit"
         messaging_api.reply_message(ReplyMessageRequest(
             reply_token=reply_token,
-            messages=[TextMessage(text="🪪 学籍番号を入力してください。")]
+            messages=[TextMessage(text="ジムの許可証番号を入力してください。")]
         ))
         return
 
@@ -114,7 +114,7 @@ def handle_message(event):
         state["step"] = "register_faculty"
         messaging_api.reply_message(ReplyMessageRequest(
             reply_token=reply_token,
-            messages=[TextMessage(text="🏫 学部名を入力してください。")]
+            messages=[TextMessage(text="学部名を入力してください。")]
         ))
         return
 
