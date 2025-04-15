@@ -14,7 +14,7 @@ from threading import Thread
 import os
 from dotenv import load_dotenv
 from main import make_reservation
-from supabase_client import get_user_info_from_supabase  # ✅ Supabaseから個人情報取得用
+from supabase_client import get_user_info_from_supabase, register_user_in_supabase
 
 load_dotenv()
 app = Flask(__name__)
@@ -29,6 +29,7 @@ handler = WebhookHandler(channel_secret)
 
 user_state = {}
 
+
 def generate_date_quick_reply():
     today = datetime.now()
     date_items = [
@@ -41,6 +42,7 @@ def generate_date_quick_reply():
         QuickReplyItem(action=MessageAction(label="キャンセル", text="キャンセル"))
     )
     return QuickReply(items=date_items)
+
 
 def generate_time_quick_reply():
     times = [
@@ -61,9 +63,11 @@ def generate_time_quick_reply():
     )
     return QuickReply(items=time_items)
 
+
 @app.route("/", methods=["GET"])
 def root():
     return "✅ Flask is running!"
+
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -77,18 +81,78 @@ def callback():
 
     return "OK"
 
+
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_id = event.source.user_id
     reply_token = event.reply_token
     text = event.message.text.strip()
 
+    state = user_state.get(user_id, {})
+
+    if state.get("step") == "register_name":
+        state["name"] = text
+        state["step"] = "register_email"
+        messaging_api.reply_message(ReplyMessageRequest(
+            reply_token=reply_token,
+            messages=[TextMessage(text="📧 メールアドレスを入力してください。")]
+        ))
+        return
+
+    if state.get("step") == "register_email":
+        state["email"] = text
+        state["step"] = "register_permit"
+        messaging_api.reply_message(ReplyMessageRequest(
+            reply_token=reply_token,
+            messages=[TextMessage(text="🪪 学籍番号を入力してください。")]
+        ))
+        return
+
+    if state.get("step") == "register_permit":
+        state["permit"] = text
+        state["step"] = "register_faculty"
+        messaging_api.reply_message(ReplyMessageRequest(
+            reply_token=reply_token,
+            messages=[TextMessage(text="🏫 学部名を入力してください。")]
+        ))
+        return
+
+    if state.get("step") == "register_faculty":
+        state["faculty"] = text
+
+        try:
+            register_user_in_supabase(
+                user_id=user_id,
+                name=state["name"],
+                email=state["email"],
+                permit=state["permit"],
+                faculty=state["faculty"]
+            )
+            reply_text = "✅ 登録が完了しました！"
+        except Exception as e:
+            reply_text = f"❌ 登録に失敗しました: {e}"
+
+        messaging_api.reply_message(ReplyMessageRequest(
+            reply_token=reply_token,
+            messages=[TextMessage(text=reply_text)]
+        ))
+        user_state.pop(user_id, None)
+        return
+
+    if text == "登録":
+        user_state[user_id] = {"step": "register_name"}
+        messaging_api.reply_message(ReplyMessageRequest(
+            reply_token=reply_token,
+            messages=[TextMessage(text="📝 名前を入力してください。")]
+        ))
+        return
+
     if text == "キャンセル":
         user_state.pop(user_id, None)
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=reply_token,
-                messages=[TextMessage(text="❌ 予約をキャンセルしました。")]
+                messages=[TextMessage(text="❌ 操作をキャンセルしました。")]
             )
         )
         return
@@ -106,9 +170,9 @@ def handle_message(event):
         )
         return
 
-    if user_state.get(user_id, {}).get("step") == "waiting_for_date":
-        user_state[user_id]["date"] = text
-        user_state[user_id]["step"] = "waiting_for_time"
+    if state.get("step") == "waiting_for_date":
+        state["date"] = text
+        state["step"] = "waiting_for_time"
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=reply_token,
@@ -120,8 +184,8 @@ def handle_message(event):
         )
         return
 
-    if user_state.get(user_id, {}).get("step") == "waiting_for_time":
-        selected_date = user_state[user_id]["date"]
+    if state.get("step") == "waiting_for_time":
+        selected_date = state["date"]
         selected_time = text
 
         messaging_api.reply_message(
@@ -133,13 +197,8 @@ def handle_message(event):
 
         def background_task():
             try:
-                # ✅ Supabaseからユーザーの個人情報を取得
                 user_info = get_user_info_from_supabase(user_id)
-
-                # ✅ 予約処理
                 logs, _ = make_reservation(selected_date, selected_time, user_info)
-
-                # ✅ LINEにログを通知
                 messaging_api.push_message(
                     PushMessageRequest(
                         to=user_id,
@@ -164,9 +223,10 @@ def handle_message(event):
     messaging_api.reply_message(
         ReplyMessageRequest(
             reply_token=reply_token,
-            messages=[TextMessage(text="「予約」と送って始めてください！")]
+            messages=[TextMessage(text="「登録」または「予約」と送って始めてください！")]
         )
     )
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
