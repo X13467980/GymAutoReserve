@@ -15,6 +15,7 @@ import os
 from dotenv import load_dotenv
 from main import make_reservation
 from supabase_client import get_user_info_from_supabase, register_user_in_supabase
+import traceback
 
 load_dotenv()
 app = Flask(__name__)
@@ -130,7 +131,8 @@ def handle_message(event):
             )
             reply_text = "✅ 登録が完了しました！"
         except Exception as e:
-            reply_text = f"❌ 登録に失敗しました: {e}"
+            print(traceback.format_exc())
+            reply_text = f"❌ 登録に失敗しました: {repr(e)}"
 
         messaging_api.reply_message(ReplyMessageRequest(
             reply_token=reply_token,
