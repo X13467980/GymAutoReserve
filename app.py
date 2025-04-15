@@ -138,7 +138,7 @@ def handle_message(event):
                     PushMessageRequest(
                         to=user_id,
                         messages=[
-                            TextMessage(text=f"✅ 予約完了しました！\n{selected_date} {selected_time}"),
+                            TextMessage(text=f"予約完了しました！\n{selected_date} {selected_time}"),
                             TextMessage(text=str(logs))
                         ]
                     )
@@ -147,7 +147,7 @@ def handle_message(event):
                 messaging_api.push_message(
                     PushMessageRequest(
                         to=user_id,
-                        messages=[TextMessage(text=f"❌ 予約に失敗しました。\nエラー: {str(e)}")]
+                        messages=[TextMessage(text=f"予約に失敗しました。\nエラー: {str(e)}")]
                     )
                 )
 
