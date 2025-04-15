@@ -130,9 +130,10 @@ def handle_message(event):
                 faculty=state["faculty"]
             )
             reply_text = "✅ 登録が完了しました！"
+
         except Exception as e:
-            print(traceback.format_exc())
-            reply_text = f"❌ 登録に失敗しました: {repr(e)}"
+            print("登録エラー:", traceback.format_exc())  # ログにフルスタックを出す
+            reply_text = f"❌ 登録に失敗しました: {type(e).__name__} - {e}"
 
         messaging_api.reply_message(ReplyMessageRequest(
             reply_token=reply_token,
